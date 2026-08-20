@@ -1,0 +1,6 @@
+A|The idea is that the cache stops being a thing each service manages for itself and becomes a shared layer with one owner.
+B|Help me out, because per-service caching sounds fine? That's where I'd expect it to live.
+A|It's fine right up until two services disagree about what's current. Then you're debugging which one is stale, and the answer depends on whose TTL fired last.
+B|Four different caches, then?
+A|Four. And none of them authoritative.
+B|Yeah, okay. That's real.

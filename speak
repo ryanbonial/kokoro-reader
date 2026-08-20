@@ -1,0 +1,61 @@
+#!/bin/bash
+# speak - read text aloud with Kokoro, via the warm speakd daemon.
+#
+#   speak "some text"      speak the argument
+#   pbpaste | speak        speak stdin
+#   speak --toggle         pause / resume
+#   speak --pause          suspend where it is
+#   speak --resume         carry on
+#   speak --stop           stop and clear
+#   speak --status         playing | paused | idle
+#
+# Starts the daemon on first use (~15s, model load plus warm-up) and reuses it
+# after that, so a normal call costs generation time only.
+set -uo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOCK="$HOME/.cache/speakd/speakd.sock"
+LOG="$HOME/.cache/speakd/speakd.log"
+
+send() {  # text on stdin -> daemon; daemon's reply -> stdout
+  /usr/bin/python3 -c '
+import socket, sys, os
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+s.connect(os.path.expanduser("~/.cache/speakd/speakd.sock"))
+s.sendall(sys.stdin.buffer.read())
+s.shutdown(socket.SHUT_WR)
+sys.stdout.write(s.recv(256).decode())
+s.close()
+' 2>/dev/null
+}
+
+alive() { [ -S "$SOCK" ] && printf '' | send >/dev/null; }
+
+ensure_daemon() {
+  alive && return 0
+  mkdir -p "$(dirname "$SOCK")"
+  nohup "$DIR/.venv-mlx/bin/python" "$DIR/speakd.py" >>"$LOG" 2>&1 &
+  for _ in $(seq 1 80); do          # the socket only appears once the model is warm
+    alive && return 0
+    sleep 0.25
+  done
+  echo "speak: daemon did not start, see $LOG" >&2
+  return 1
+}
+
+# transport controls: never start the daemon just to control nothing
+case "${1:-}" in
+  --stop)   alive && printf '__STOP__'   | send; exit 0 ;;
+  --pause)  alive && printf '__PAUSE__'  | send; exit 0 ;;
+  --resume) alive && printf '__RESUME__' | send; exit 0 ;;
+  --toggle) alive && printf '__TOGGLE__' | send; exit 0 ;;
+  --status) if alive; then printf '__STATUS__' | send; else printf 'idle'; fi; echo; exit 0 ;;
+esac
+
+if [ $# -gt 0 ]; then TEXT="$*"; else TEXT="$(cat)"; fi
+printf '%s  argc=%s  chars=%s  [%.60s]\n' "$(date '+%H:%M:%S')" "$#" "${#TEXT}" "$TEXT" \
+  >>"$HOME/.cache/speakd/invocations.log" 2>/dev/null
+[ -z "${TEXT// /}" ] && exit 0
+
+ensure_daemon || exit 1
+printf '%s' "$TEXT" | send >/dev/null
