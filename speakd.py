@@ -46,9 +46,44 @@ class Player:
         self._buf = np.zeros(0, dtype=np.float32)
         self._lock = threading.Lock()
         self.paused = False
+        self.stream = None
+        self.device = None
+        self._open()
+
+    def _open(self):
+        try:
+            self.device = sd.query_devices(kind="output")["name"]
+        except Exception:
+            self.device = None
         self.stream = sd.OutputStream(samplerate=SR, channels=1, dtype="float32",
                                       blocksize=1024, callback=self._cb)
         self.stream.start()
+
+    def retarget(self):
+        """Reopen on whatever output device is currently default.
+
+        Called once per utterance. A stream stays bound to the device that was
+        default when it opened, so connecting headphones mid-session would
+        otherwise keep playing into the old one.
+
+        The stream is ALWAYS closed before sd._terminate(). Terminating
+        PortAudio invalidates every open stream, so skipping the close leaves a
+        dead stream that silently accepts audio, plays nothing, and never
+        drains the buffer.
+        """
+        try:
+            if self.stream is not None:
+                self.stream.close()
+        except Exception as e:
+            log(f"stream close failed: {e!r}")
+        self.stream = None
+        try:
+            sd._terminate(); sd._initialize()
+        except Exception as e:
+            log(f"portaudio reinit failed: {e!r}")
+        self.paused = False
+        self._open()
+        log(f"output: {self.device}")
 
     def _cb(self, outdata, frames, _time, _status):
         with self._lock:
@@ -190,6 +225,7 @@ def main():
                 reply = "idle"
             else:
                 jid = cancel()
+                player.retarget()
                 threading.Thread(target=speak, args=(model, text, jid), daemon=True).start()
                 reply = "playing"
             conn.sendall(reply.encode())

@@ -88,7 +88,7 @@ filename so you can bracket values without overwriting.
 
 After editing `speakd.py`, run `pkill -f speakd.py`. The next call restarts it.
 
-## Two non-obvious things this works around
+## Three non-obvious things this works around
 
 Both were measured on an M3 Pro and cost real time to find. If you build something
 similar, you will hit them.
@@ -103,6 +103,19 @@ file; the rest is process and audio-device startup. One `afplay` per sentence is
 therefore unusable. `speakd.py` keeps a single `sounddevice` output stream open for the
 life of the daemon and appends audio to it. Pause is a stream halt rather than a signal
 to a child process, which is also more precise.
+
+**A persistent output stream does not follow the default device.** The fix for the
+previous problem causes this one. A `sounddevice` stream stays bound to whichever
+output device was default when it opened, so connecting headphones mid-session sends
+audio to the old device and you hear nothing. Everything reports healthy, because it
+is: audio generates, buffers, and drains on schedule, just into the wrong place.
+`Player.retarget()` checks the current default at the start of each utterance and
+reopens if it changed.
+
+The subtlety: PortAudio caches its device list when it initializes, so a long-lived
+process keeps reporting the devices that existed at startup. `retarget()` calls
+`sd._terminate()` and `sd._initialize()` before checking, or the check reads stale
+data and never fires.
 
 ## Why the clipboard
 
