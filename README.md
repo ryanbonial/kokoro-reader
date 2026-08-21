@@ -165,6 +165,24 @@ work. Two reasons, both dead ends:
 The clipboard costs one extra ⌘C and works everywhere. Don't spend an afternoon on
 Services; this README is the record of that afternoon.
 
+## Privacy
+
+Everything runs on this machine. No network calls after the one-time model download,
+so the text you read never leaves the Mac. That is the main reason to prefer this over
+a hosted voice if you read anything confidential.
+
+Nothing is written to disk by default. `SPEAK_DEBUG=1 speak "..."` appends a line per
+call to `~/.cache/speakd/invocations.log` with a timestamp, a length, and the first 60
+characters, which is useful when a hotkey silently does nothing or text arrives
+mangled. Leave it off the rest of the time and delete the file when you are done:
+
+```bash
+rm -f ~/.cache/speakd/invocations.log
+```
+
+`~/.cache/speakd/speakd.log` holds the daemon's stderr (device changes, phonemizer
+warnings, tracebacks). It does not record what you asked it to say.
+
 ## Known limitations
 
 - **Heteronyms.** "lives", "read", "lead", "tear", "wind" and friends are disambiguated

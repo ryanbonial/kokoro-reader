@@ -53,8 +53,13 @@ case "${1:-}" in
 esac
 
 if [ $# -gt 0 ]; then TEXT="$*"; else TEXT="$(cat)"; fi
-printf '%s  argc=%s  chars=%s  [%.60s]\n' "$(date '+%H:%M:%S')" "$#" "${#TEXT}" "$TEXT" \
-  >>"$HOME/.cache/speakd/invocations.log" 2>/dev/null
+# Off by default: this records what you had on the clipboard, and the whole point
+# of running locally is that your text stays yours. Set SPEAK_DEBUG=1 to turn it on
+# while chasing a bug, then unset it.
+if [ -n "${SPEAK_DEBUG:-}" ]; then
+  printf '%s  argc=%s  chars=%s  [%.60s]\n' "$(date '+%H:%M:%S')" "$#" "${#TEXT}" "$TEXT" \
+    >>"$HOME/.cache/speakd/invocations.log" 2>/dev/null
+fi
 [ -z "${TEXT// /}" ] && exit 0
 
 ensure_daemon || exit 1
