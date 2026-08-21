@@ -1,0 +1,37 @@
+# Pronunciation hints: written = spoken
+# Case-insensitive, whole words only. Longest match wins.
+# Edited live: no need to restart the daemon.
+
+esbuild    = e s build
+yml        = yamel
+yaml       = yamel
+nginx      = engine x
+kubectl    = kube control
+k8s        = kubernetes
+i18n       = internationalization
+a11y       = accessibility
+oauth      = oh auth
+gui        = gooey
+vite       = veet
+pnpm       = p n p m
+npm        = n p m
+sql        = sequel
+psql       = p sequel
+postgres   = post gres
+sqlite     = sequel lite
+uuid       = u u i d
+utf-8      = u t f eight
+src        = source
+href       = h ref
+async      = ay sink
+cli        = c l i
+sdk        = s d k
+api        = a p i
+ssh        = s s h
+jwt        = j w t
+cors       = korz
+macos      = mac o s
+ios        = i o s
+tsx        = t s x
+jsx        = j s x
+regex      = rej ex

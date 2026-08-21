@@ -88,6 +88,26 @@ filename so you can bracket values without overwriting.
 
 After editing `speakd.py`, run `pkill -f speakd.py`. The next call restarts it.
 
+## Pronunciation hints
+
+Technical vocabulary is the main thing the engine gets wrong: it reads "esbuild"
+phonetically and "yml" as a word. Fix those in `lexicon.txt`, one `written = spoken`
+rule per line:
+
+```
+esbuild = e s build
+yml     = yamel
+nginx   = engine x
+```
+
+Matching is case-insensitive and whole-word, so `esbuilder` and `myyml` are left
+alone. Longest rule wins. The file is reloaded on every utterance, so edits take
+effect immediately with no daemon restart.
+
+These are plain text rewrites rather than phonemes. `esbuild = e s build` is easier to
+read and edit than `[esbuild](/ˈiːɛsbɪld/)`, and it survives swapping the engine out.
+Both `speak` and `render_mlx.py` apply the same file.
+
 ## Three non-obvious things this works around
 
 Both were measured on an M3 Pro and cost real time to find. If you build something
@@ -134,9 +154,10 @@ Services; this README is the record of that afternoon.
 ## Known limitations
 
 - **Heteronyms.** "lives", "read", "lead", "tear", "wind" and friends are disambiguated
-  by part-of-speech tagging, which fails on unusual syntax. Misaki supports inline
-  overrides (`[lives](/lˈɪvz/)`) if you control the text, but you can't annotate
-  something you just highlighted.
+  by part-of-speech tagging, which fails on unusual syntax. `lexicon.txt` cannot help:
+  a rule has one spoken form, and these words have two depending on the sentence.
+  Misaki supports inline overrides (`[lives](/lˈɪvz/)`) if you control the text, but
+  you can't annotate something you just highlighted.
 - **One voice for prose.** `speak` reads everything in `VOICE`. Two voices only apply
   to the dialogue renderer.
 - **No speed change mid-playback.** Audio is generated ahead of the ear, so changing

@@ -9,6 +9,7 @@ Script format, one turn per line:
 Writes <script-basename>.wav next to this file (speed-suffixed if not the default).
 """
 import sys, time, pathlib, argparse, numpy as np, soundfile as sf
+import lexicon
 from mlx_audio.tts.utils import load_model
 
 SR = 24000
@@ -63,7 +64,7 @@ for lineno, line in enumerate(src.read_text().splitlines(), 1):
     turns += 1
     audio = trim(np.concatenate([
         np.asarray(r.audio, dtype=np.float32).reshape(-1)
-        for r in model.generate(text=text.strip(), voice=VOICES[spk],
+        for r in model.generate(text=lexicon.apply(text.strip()), voice=VOICES[spk],
                                 speed=args.speed, lang_code="a")
     ]))
     audio_s += len(audio) / SR

@@ -18,6 +18,7 @@ Run:  ./.venv-mlx/bin/python speakd.py
 """
 import os, re, sys, queue, socket, signal, threading
 import numpy as np, sounddevice as sd
+import lexicon
 
 SOCK = os.path.expanduser("~/.cache/speakd/speakd.sock")
 SR = 24000
@@ -163,7 +164,7 @@ def sentences(text):
 
 def speak(model, text, jid):
     join = np.zeros(int(SR * JOIN_MS / 1000), dtype=np.float32)
-    for s in sentences(text):
+    for s in sentences(lexicon.apply(text)):
         if stale(jid):
             return
         try:
