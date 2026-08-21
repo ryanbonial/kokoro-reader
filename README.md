@@ -108,7 +108,7 @@ These are plain text rewrites rather than phonemes. `esbuild = e s build` is eas
 read and edit than `[esbuild](/ˈiːɛsbɪld/)`, and it survives swapping the engine out.
 Both `speak` and `render_mlx.py` apply the same file.
 
-## Three non-obvious things this works around
+## Four non-obvious things this works around
 
 Both were measured on an M3 Pro and cost real time to find. If you build something
 similar, you will hit them.
@@ -136,6 +136,20 @@ The subtlety: PortAudio caches its device list when it initializes, so a long-li
 process keeps reporting the devices that existed at startup. `retarget()` calls
 `sd._terminate()` and `sd._initialize()` before checking, or the check reads stale
 data and never fires.
+
+**GUI launchers run scripts without a locale, and `pbpaste` changes encoding.**
+Raycast, Automator and friends give a script a bare environment with no `LC_CTYPE`.
+`pbpaste` then emits Mac OS Roman instead of UTF-8, so a curly apostrophe arrives as
+the single byte `0xD5`, which is not valid UTF-8. Decode that with
+`errors="replace"` and "isn't" becomes `isn\ufffdt`; the phonemizer treats the unknown
+character as a word break and reads it as "isn" plus the letter T, which sounds like
+"isentee".
+
+Fixed in two places, because either alone would do it and both are cheap:
+`raycast/speak-clipboard.sh` exports `LC_CTYPE=UTF-8` so the bytes are right to begin
+with, and `decode_request()` in `speakd.py` falls back to `mac_roman` rather than
+substituting replacement characters. Anything that copies from a word processor,
+Google Docs, Notion or Slack will hit this, since they all use typographic quotes.
 
 ## Why the clipboard
 

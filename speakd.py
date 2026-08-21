@@ -27,6 +27,24 @@ SPEED = float(os.environ.get("SPEAK_SPEED", "1.3"))
 JOIN_MS = int(os.environ.get("SPEAK_JOIN_MS", "350"))   # breath between sentences
 
 
+def decode_request(b):
+    """Decode bytes from the client.
+
+    GUI launchers (Raycast, Automator) run scripts with no LC_CTYPE, and pbpaste
+    then emits Mac OS Roman rather than UTF-8, so a curly apostrophe arrives as
+    0xD5. Decoding that as UTF-8 with errors="replace" turns "isn't" into
+    "isn\ufffdt", and the phonemizer reads the unknown character as a word
+    break: "isn" plus the letter T, which comes out as "isentee". Falling back
+    to mac_roman recovers the apostrophe instead of destroying it.
+    """
+    for enc in ("utf-8", "mac_roman"):
+        try:
+            return b.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return b.decode("utf-8", "replace")
+
+
 def log(*a):
     print(*a, file=sys.stderr, flush=True)
 
@@ -215,7 +233,7 @@ def main():
             buf = b""
             while chunk := conn.recv(65536):
                 buf += chunk
-            text = buf.decode("utf-8", "replace").strip()
+            text = decode_request(buf).strip()
             reply = ""
             if not text:
                 pass
